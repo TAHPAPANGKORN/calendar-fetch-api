@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>informatics schedule</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 20px;
+      background: #f7f7f7;
+      color: #333;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 60px;
+    }
+
+    h2 {
+      margin-top: 60px;
+      margin-bottom: 10px;
+      color: #2c3e50;
+      font-size: 32px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      margin-bottom: 40px;
+    }
+
+    th,
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+      vertical-align: top;
+      font-size: 32px;
+      border: 1px solid black;
+    }
+    td:nth-child(1),
+    td:nth-child(2) {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    td:nth-child(3) {
+      white-space: normal;
+      word-break: break-word;
+    }
+
+
+    th {
+      background-color: #01396B;
+      color: white;
+      font-size: 32px;
+    }
+
+    .no-events {
+      text-align: center;
+      color: #888;
+      padding: 20px;
+    }
+
+    tbody tr:nth-child(odd) {
+      background-color: #daedfe;
+    }
+
+    tbody tr:nth-child(even) {
+      background-color: #e6e7e9;
+    }
+
+    /* tr:hover {
+      background-color: #f1f1f1;
+    } */
+  </style>
+</head>
+
+<body>
+  <h1>กิจกรรมคณะวิทยาการสารสนเทศ</h1>
+
+  <h2>วันนี้ (<span id="today-label"></span>)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>เวลา</th>
+        <th>สถานที่</th>
+        <th>หัวข้อกิจกรรม</th>
+      </tr>
+    </thead>
+    <tbody id="today-events">
+      <tr>
+        <td colspan="4">กำลังโหลด...</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>พรุ่งนี้ (<span id="tomorrow-label"></span>)</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>เวลา</th>
+        <th>สถานที่</th>
+        <th>หัวข้อกิจกรรม</th>
+      </tr>
+    </thead>
+    <tbody id="tomorrow-events">
+      <tr>
+        <td colspan="4">กำลังโหลด...</td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <!-- inside have api key -->
+  <script src="config.js"></script>
+
+  <script>
+    const calendarId = 'pr@informatics.buu.ac.th';
+
+    const loadEventsForDay = (dateObj, tableBodyId, labelId) => {
+      const label = dateObj.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+      document.getElementById(labelId).textContent = label;
+      
+      const timeMin = new Date(dateObj.setHours(0, 0, 0, 0)).toISOString();
+      const timeMax = new Date(dateObj.setHours(23, 59, 59, 999)).toISOString();
+      
+      const endpoint = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?key=${apiKey}&orderBy=startTime&singleEvents=true&timeMin=${timeMin}&timeMax=${timeMax}`;
+      
+      fetch(endpoint)
+      .then(res => res.json())
+      .then(data => {
+        const tbody = document.getElementById(tableBodyId);
+        tbody.innerHTML = '';
+        
+        if (!data.items || data.items.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" class="no-events">ไม่มีข้อมูลกิจกรรม</td></tr>`;
+          return;
+        }
+        
+        data.items.forEach(event => {
+          const isAllDay = !event.start.dateTime;
+          let timeText = '08:30 - 16:30 น.';
+          
+          if (!isAllDay) {
+            const start = new Date(event.start.dateTime);
+            const end = new Date(event.end.dateTime);
+            const startStr = start.toLocaleTimeString('th-TH', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false,
+              timeZone: 'Asia/Bangkok'
+            });
+            const endStr = end.toLocaleTimeString('th-TH', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false,
+              timeZone: 'Asia/Bangkok'
+            });
+            timeText = `${startStr} - ${endStr} น.`;
+          }
+          
+          const row = document.createElement('tr');
+          row.innerHTML = `
+          <td>${timeText}</td>
+          <td>${event.location || 'ไม่ระบุสถานที่'}</td>
+          <td>${event.summary || 'ไม่มีชื่อกิจกรรม'}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      })
+      .catch(err => {
+        console.error('โหลดข้อมูลล้มเหลว:', err);
+        document.getElementById(tableBodyId).innerHTML = '<tr><td colspan="4" class="no-events">เกิดข้อผิดพลาด</td></tr>';
+      });
+    };
+    
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1);
+    
+    loadEventsForDay(new Date(today), 'today-events', 'today-label');
+    loadEventsForDay(new Date(tomorrow), 'tomorrow-events', 'tomorrow-label');
+    </script>
+</body>
+
+</html>
+
+
+
