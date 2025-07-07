@@ -18,7 +18,7 @@ This project is a simple frontend web page that displays today's and tomorrow's 
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/FTGFLabs/calendar-fetch-api.git
+git clone https://github.com/FTGFLabs/Informatics-Schedule-Viewer.git
 cd calendar-fetch-api
 ```
 
